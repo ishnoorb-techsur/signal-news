@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIGNAL — Live News Network</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0a0a0a;
+      --paper: #f4f0e8;
+      --signal: #e8230a;
+      --signal-dim: #8c1506;
+      --wire: #b8b2a3;
+      --flash: #ffd447;
+      --live: #00e676;
+      --cold: #1a2744;
+      --col: #2a2420;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.035;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 6px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 24px; }
+    .topbar-right { display: flex; align-items: center; gap: 20px; }
+
+    .live-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--signal);
+      color: white;
+      padding: 3px 10px;
+      border-radius: 2px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+    }
+
+    .live-dot {
+      width: 6px; height: 6px;
+      background: white;
+      border-radius: 50%;
+      animation: pulse-dot 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.6); }
+    }
+
+    .ticker-wrap {
+      overflow: hidden;
+      width: 600px;
+      mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    }
+
+    .ticker {
+      display: inline-flex;
+      gap: 0;
+      animation: ticker 40s linear infinite;
+      white-space: nowrap;
+    }
+
+    .ticker span {
+      padding: 0 28px;
+      border-left: 1px solid #333;
+      color: #ccc;
+    }
+
+    .ticker span.hot { color: var(--flash); }
+
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    .clock {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: #aaa;
+    }
+
+    /* ── MASTHEAD ── */
+    .masthead {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      padding: 20px 40px 16px;
+      border-bottom: 3px solid var(--ink);
+      gap: 16px;
+    }
+
+    .masthead-left {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .edition {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--col);
+      writing-mode: horizontal-tb;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 88px;
+      line-height: 0.85;
+      color: var(--ink);
+      letter-spacing: -2px;
+      position: relative;
+    }
+
+    .logo sup {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      color: var(--signal);
+      font-weight: 600;
+      vertical-align: super;
+      margin-left: 4px;
+    }
+
+    .masthead-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .nav-links a {
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      padding-bottom: 2px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .nav-links a:hover, .nav-links a.active {
+      border-color: var(--signal);
+      color: var(--signal);
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--ink);
+      padding: 6px 12px;
+      border-radius: 2px;
+    }
+
+    .search-bar input {
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--paper);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      width: 160px;
+      letter-spacing: 0.05em;
+    }
+
+    .search-bar input::placeholder { color: #666; }
+
+    .search-bar svg { stroke: #888; }
+
+    /* ── SECTION RULE ── */
+    .section-rule {
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 40px;
+      background: var(--ink);
+    }
+
+    .section-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      color: var(--signal);
+    }
+
+    .section-rule-line {
+      height: 1px;
+      background: linear-gradient(to right, #444, transparent);
+    }
+
+    /* ── HERO GRID ── */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 0;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .hero-main {
+      grid-row: 1 / 3;
+      border-right: 2px solid var(--ink);
+      position: relative;
+      overflow: hidden;
+      background: var(--cold);
+      min-height: 480px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 36px;
+      cursor: pointer;
+    }
+
+    .hero-main::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: 
+        radial-gradient(ellipse at 30% 20%, rgba(232,35,10,0.15) 0%, transparent 60%),
+        linear-gradient(180deg, transparent 30%, rgba(10,10,10,0.9) 100%);
+    }
+
+    /* Animated city skyline SVG bg */
+    .hero-bg {
+      position: absolute; inset: 0;
+      background: 
+        linear-gradient(135deg, #0d1b35 0%, #1a2744 40%, #0f1a2e 100%);
+    }
+
+    .hero-skyline {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      opacity: 0.3;
+    }
+
+    .scan-line {
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.015) 2px,
+        rgba(255,255,255,0.015) 4px
+      );
+      pointer-events: none;
+    }
+
+    .hero-cat {
+      position: relative;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--signal);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hero-cat::before {
+      content: '';
+      width: 20px; height: 2px;
+      background: var(--signal);
+    }
+
+    .hero-headline {
+      position: relative;
+      font-family: 'DM Serif Display', serif;
+      font-size: 46px;
+      line-height: 1.05;
+      color: white;
+      margin-bottom: 16px;
+      max-width: 520px;
+    }
+
+    .hero-headline em {
+      font-style: italic;
+      color: var(--flash);
+    }
+
+    .hero-meta {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .hero-meta .byline { color: rgba(255,255,255,0.8); }
+    .hero-meta .sep { color: #444; }
+
+    .hero-sub-top {
+      border-bottom: 2px solid var(--ink);
+      padding: 24px 28px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .hero-sub-top:hover { background: rgba(232,35,10,0.04); }
+
+    .hero-sub-bottom {
+      padding: 24px 28px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .hero-sub-bottom:hover { background: rgba(232,35,10,0.04); }
+
+    .sub-cat {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--signal);
+      margin-bottom: 8px;
+    }
+
+    .sub-headline {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      line-height: 1.2;
+      color: var(--ink);
+      margin-bottom: 10px;
+    }
+
+    .sub-deck {
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #555;
+      margin-bottom: 12px;
+    }
+
+    .sub-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--wire);
+      display: flex;
+      gap: 12px;
+    }
+
+    /* ── CONTENT GRID ── */
+    .content-section {
+      padding: 0 40px 48px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 28px 0 16px;
+      border-bottom: 3px solid var(--ink);
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      letter-spacing: 0.05em;
+      color: var(--ink);
+    }
+
+    .section-title span {
+      color: var(--signal);
+    }
+
+    .see-all {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--signal);
+      text-decoration: none;
+      border-bottom: 1px solid var(--signal);
+      padding-bottom: 1px;
+    }
+
+    .card-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border: 1.5px solid var(--ink);
+    }
+
+    .story-card {
+      padding: 24px 22px;
+      border-right: 1.5px solid var(--ink);
+      cursor: pointer;
+      transition: background 0.2s;
+      position: relative;
+    }
+
+    .story-card:last-child { border-right: none; }
+
+    .story-card:hover { background: rgba(10,10,10,0.03); }
+
+    .story-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 22px; right: 22px;
+      height: 2px;
+      background: var(--signal);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+
+    .story-card:hover::after { transform: scaleX(1); }
+
+    .card-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 52px;
+      color: rgba(10,10,10,0.07);
+      line-height: 1;
+      margin-bottom: -8px;
+    }
+
+    .card-cat {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--signal);
+      margin-bottom: 8px;
+    }
+
+    .card-headline {
+      font-family: 'DM Serif Display', serif;
+      font-size: 17px;
+      line-height: 1.3;
+      color: var(--ink);
+      margin-bottom: 10px;
+    }
+
+    .card-deck {
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #666;
+      margin-bottom: 14px;
+    }
+
+    .card-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--wire);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .card-meta .tag {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 2px 6px;
+      font-size: 9px;
+    }
+
+    /* ── DATA STRIP ── */
+    .data-strip {
+      background: var(--ink);
+      padding: 0 40px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      border-top: 3px solid var(--signal);
+    }
+
+    .data-tile {
+      padding: 20px 0;
+      border-right: 1px solid #222;
+      padding-right: 32px;
+      padding-left: 32px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+
+    .data-tile:hover { background: rgba(255,255,255,0.03); }
+    .data-tile:first-child { padding-left: 0; }
+    .data-tile:last-child { border-right: none; }
+
+    .data-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 6px;
+    }
+
+    .data-val {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      line-height: 1;
+      color: var(--paper);
+      letter-spacing: 0.03em;
+    }
+
+    .data-change {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      margin-top: 4px;
+    }
+
+    .data-change.up { color: var(--live); }
+    .data-change.down { color: var(--signal); }
+
+    /* ── OPINION + SIDEBAR ── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 0;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .opinion-col {
+      border-right: 2px solid var(--ink);
+      padding: 32px 40px 40px;
+    }
+
+    .sidebar-col {
+      padding: 32px 28px 40px;
+    }
+
+    .opinion-card {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 20px;
+      padding: 20px 0;
+      border-bottom: 1px solid rgba(10,10,10,0.12);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .opinion-card:last-child { border-bottom: none; }
+    .opinion-card:hover { background: rgba(232,35,10,0.03); margin: 0 -20px; padding: 20px; }
+
+    .avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: var(--cold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px;
+      color: var(--paper);
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .avatar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 60%);
+    }
+
+    .avatar.red { background: var(--signal-dim); }
+    .avatar.gold { background: #7a5a00; }
+
+    .opinion-headline {
+      font-family: 'DM Serif Display', serif;
+      font-style: italic;
+      font-size: 19px;
+      line-height: 1.25;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .opinion-byline {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--signal);
+      letter-spacing: 0.05em;
+    }
+
+    /* Sidebar trending */
+    .trending-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(10,10,10,0.1);
+      cursor: pointer;
+    }
+
+    .trending-item:last-child { border-bottom: none; }
+
+    .trending-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 36px;
+      color: rgba(10,10,10,0.1);
+      line-height: 1;
+      flex-shrink: 0;
+      width: 32px;
+    }
+
+    .trending-text {
+      font-family: 'DM Serif Display', serif;
+      font-size: 15px;
+      line-height: 1.3;
+      color: var(--ink);
+      padding-top: 4px;
+    }
+
+    .trending-cat {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--wire);
+      margin-top: 4px;
+    }
+
+    /* ── VIDEO STRIP ── */
+    .video-strip {
+      padding: 32px 40px 40px;
+      background: var(--cold);
+    }
+
+    .video-strip .section-header {
+      border-color: #2a3a5e;
+    }
+
+    .video-strip .section-title { color: var(--paper); }
+
+    .video-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .video-thumb {
+      background: #111827;
+      aspect-ratio: 16/9;
+      position: relative;
+      border-radius: 2px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .video-thumb::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, #1e2f50, #0d1b35);
+    }
+
+    .video-thumb::after {
+      content: '▶';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: rgba(255,255,255,0.4);
+      transition: color 0.2s, transform 0.2s;
+    }
+
+    .video-thumb:hover::after {
+      color: white;
+      transform: scale(1.1);
+    }
+
+    .video-duration {
+      position: absolute;
+      bottom: 10px; right: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 2px;
+    }
+
+    .video-live-badge {
+      position: absolute;
+      top: 10px; left: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      background: var(--signal);
+      color: white;
+      padding: 2px 8px;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+    }
+
+    .video-info { margin-top: 12px; }
+
+    .video-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 16px;
+      color: var(--paper);
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+
+    .video-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: #667;
+      color: rgba(244,240,232,0.3);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--ink);
+      color: rgba(244,240,232,0.4);
+      padding: 40px 40px 24px;
+      border-top: 3px solid var(--signal);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 52px;
+      color: var(--paper);
+      line-height: 0.9;
+      margin-bottom: 12px;
+    }
+
+    .footer-tagline {
+      font-family: 'DM Serif Display', serif;
+      font-style: italic;
+      font-size: 14px;
+      color: rgba(244,240,232,0.5);
+      line-height: 1.5;
+    }
+
+    .footer-col-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--signal);
+      margin-bottom: 16px;
+    }
+
+    .footer-links { list-style: none; }
+
+    .footer-links li {
+      padding: 5px 0;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: rgba(244,240,232,0.5);
+      text-decoration: none;
+      transition: color 0.2s;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .footer-links a:hover { color: var(--paper); }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 20px;
+      border-top: 1px solid #1a1a1a;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-main > * { animation: fadeUp 0.7s ease forwards; }
+    .hero-cat { animation-delay: 0.1s; opacity: 0; }
+    .hero-headline { animation-delay: 0.25s; opacity: 0; }
+    .hero-meta { animation-delay: 0.4s; opacity: 0; }
+
+    /* ── BREAKING BANNER ── */
+    .breaking {
+      background: var(--signal);
+      padding: 8px 40px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      overflow: hidden;
+    }
+
+    .breaking-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 14px;
+      letter-spacing: 0.2em;
+      color: white;
+      white-space: nowrap;
+      background: rgba(0,0,0,0.2);
+      padding: 2px 10px;
+    }
+
+    .breaking-text {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: white;
+      animation: ticker 25s linear infinite;
+      white-space: nowrap;
+    }
+
+    /* ── HOVER EFFECTS ── */
+    .hero-main:hover .hero-headline { color: var(--flash); transition: color 0.3s; }
+    .sub-headline:hover { color: var(--signal); transition: color 0.2s; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="live-pill">
+        <div class="live-dot"></div>
+        LIVE
+      </div>
+      <div class="ticker-wrap">
+        <div class="ticker">
+          <span class="hot">⚡ BREAKING: Global summit reaches historic climate accord</span>
+          <span>Markets up 1.4% on strong jobs report</span>
+          <span>Tech antitrust ruling expected by EOD Friday</span>
+          <span class="hot">⚡ Earthquake 6.1M off Pacific coast — no tsunami warning</span>
+          <span>Film festival announces surprise lineup addition</span>
+          <span>WHO declares end to regional health emergency</span>
+          <span class="hot">⚡ BREAKING: Global summit reaches historic climate accord</span>
+          <span>Markets up 1.4% on strong jobs report</span>
+          <span>Tech antitrust ruling expected by EOD Friday</span>
+          <span class="hot">⚡ Earthquake 6.1M off Pacific coast — no tsunami warning</span>
+          <span>Film festival announces surprise lineup addition</span>
+          <span>WHO declares end to regional health emergency</span>
+        </div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="clock" id="clock">--:--:-- UTC</div>
+    </div>
+  </div>
+
+  <!-- BREAKING BANNER -->
+  <div class="breaking">
+    <span class="breaking-label">BREAKING</span>
+    <span class="breaking-text">G20 Emergency Session Convened After Currency Crisis — Central banks coordinate response &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; Opposition leader calls for snap elections amid polling surge &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; NASA confirms water ice discovery in newly imaged crater formation</span>
+  </div>
+
+  <!-- MASTHEAD -->
+  <header class="masthead">
+    <div class="masthead-left">
+      <span class="edition">Est. 2009 &nbsp;·&nbsp; Digital Edition</span>
+    </div>
+    <div class="logo">SIGNAL<sup>NEWS</sup></div>
+    <div class="masthead-right">
+      <nav class="nav-links">
+        <a href="#" class="active">World</a>
+        <a href="#">Politics</a>
+        <a href="#">Economy</a>
+        <a href="#">Science</a>
+        <a href="#">Culture</a>
+        <a href="#">Video</a>
+      </nav>
+      <div class="search-bar">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" placeholder="Search Signal..." />
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO GRID -->
+  <div class="hero-grid">
+    <div class="hero-main">
+      <div class="hero-bg"></div>
+      <svg class="hero-skyline" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+        <rect x="30" y="80" width="40" height="120" fill="rgba(255,255,255,0.05)"/>
+        <rect x="80" y="50" width="25" height="150" fill="rgba(255,255,255,0.04)"/>
+        <rect x="115" y="90" width="60" height="110" fill="rgba(255,255,255,0.06)"/>
+        <rect x="185" y="40" width="30" height="160" fill="rgba(255,255,255,0.03)"/>
+        <rect x="225" y="70" width="50" height="130" fill="rgba(255,255,255,0.05)"/>
+        <rect x="285" y="110" width="35" height="90" fill="rgba(255,255,255,0.04)"/>
+        <rect x="330" y="30" width="20" height="170" fill="rgba(255,255,255,0.03)"/>
+        <rect x="360" y="60" width="45" height="140" fill="rgba(255,255,255,0.06)"/>
+        <rect x="415" y="85" width="55" height="115" fill="rgba(255,255,255,0.04)"/>
+        <rect x="480" y="45" width="28" height="155" fill="rgba(255,255,255,0.05)"/>
+        <rect x="518" y="75" width="40" height="125" fill="rgba(255,255,255,0.03)"/>
+        <rect x="568" y="95" width="50" height="105" fill="rgba(255,255,255,0.05)"/>
+        <rect x="628" y="55" width="32" height="145" fill="rgba(255,255,255,0.04)"/>
+        <rect x="670" y="80" width="60" height="120" fill="rgba(255,255,255,0.06)"/>
+        <rect x="740" y="65" width="35" height="135" fill="rgba(255,255,255,0.03)"/>
+      </svg>
+      <div class="scan-line"></div>
+      <div class="hero-cat">WORLD AFFAIRS</div>
+      <h1 class="hero-headline">A <em>New Chapter</em> Begins as Global Leaders Sign Landmark Climate Pact</h1>
+      <div class="hero-meta">
+        <span class="byline">By Miriam Okafor</span>
+        <span class="sep">·</span>
+        <span>June 1, 2026</span>
+        <span class="sep">·</span>
+        <span>9 min read</span>
+      </div>
+    </div>
+
+    <div class="hero-sub-top">
+      <div class="sub-cat">ECONOMY</div>
+      <h2 class="sub-headline">Federal Reserve Signals Pause as Inflation Inches Toward Target</h2>
+      <p class="sub-deck">After fourteen months of aggressive rate adjustments, policymakers signal a cautious hold while data catches up.</p>
+      <div class="sub-meta">
+        <span>By R. Castellano</span>
+        <span>·</span>
+        <span>4 min read</span>
+      </div>
+    </div>
+
+    <div class="hero-sub-bottom">
+      <div class="sub-cat">TECHNOLOGY</div>
+      <h2 class="sub-headline">Open-Source AI Consortium Publishes Controversial Safety Standard</h2>
+      <p class="sub-deck">The 80-page framework has split the industry—praised by some as essential, condemned by others as regulatory capture.</p>
+      <div class="sub-meta">
+        <span>By P. Nwachukwu</span>
+        <span>·</span>
+        <span>6 min read</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA STRIP -->
+  <div class="data-strip">
+    <div class="data-tile">
+      <div class="data-label">S&amp;P 500</div>
+      <div class="data-val">5,821</div>
+      <div class="data-change up">▲ +1.42%</div>
+    </div>
+    <div class="data-tile">
+      <div class="data-label">EUR / USD</div>
+      <div class="data-val">1.0847</div>
+      <div class="data-change down">▼ −0.21%</div>
+    </div>
+    <div class="data-tile">
+      <div class="data-label">BTC / USD</div>
+      <div class="data-val">$98,340</div>
+      <div class="data-change up">▲ +3.08%</div>
+    </div>
+    <div class="data-tile">
+      <div class="data-label">CRUDE OIL</div>
+      <div class="data-val">$74.12</div>
+      <div class="data-change down">▼ −0.87%</div>
+    </div>
+    <div class="data-tile">
+      <div class="data-label">10-YR YIELD</div>
+      <div class="data-val">4.31%</div>
+      <div class="data-change up">▲ +0.05</div>
+    </div>
+  </div>
+
+  <!-- LATEST NEWS -->
+  <div class="content-section">
+    <div class="section-header">
+      <div class="section-title">Latest <span>Reports</span></div>
+      <a href="#" class="see-all">All Stories →</a>
+    </div>
+    <div class="card-row">
+      <div class="story-card">
+        <div class="card-num">01</div>
+        <div class="card-cat">POLITICS</div>
+        <h3 class="card-headline">Coalition Government Faces First Major Test in Budget Vote</h3>
+        <p class="card-deck">Defections from the minority bloc could sink the spending plan and trigger a rare confidence motion.</p>
+        <div class="card-meta"><span class="tag">DEVELOPING</span> 2h ago</div>
+      </div>
+      <div class="story-card">
+        <div class="card-num">02</div>
+        <div class="card-cat">SCIENCE</div>
+        <h3 class="card-headline">New Exoplanet Discovery Reignites Debate Over Biosignatures</h3>
+        <p class="card-deck">James Webb data shows unexpected atmospheric chemistry that two research teams interpret very differently.</p>
+        <div class="card-meta">4h ago</div>
+      </div>
+      <div class="story-card">
+        <div class="card-num">03</div>
+        <div class="card-cat">HEALTH</div>
+        <h3 class="card-headline">Trial Drug Halves Recurrence in Aggressive Pancreatic Cancer</h3>
+        <p class="card-deck">Phase III results exceed expectations, with researchers calling the outcome "genuinely surprising."</p>
+        <div class="card-meta"><span class="tag">EXCLUSIVE</span> 5h ago</div>
+      </div>
+      <div class="story-card">
+        <div class="card-num">04</div>
+        <div class="card-cat">CULTURE</div>
+        <h3 class="card-headline">Unearthed Manuscript Challenges Attribution of Beloved Classic</h3>
+        <p class="card-deck">Handwriting analysis and ink dating suggest the disputed novel may have had a very different author.</p>
+        <div class="card-meta">7h ago</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPINION + TRENDING -->
+  <div class="two-col">
+    <div class="opinion-col">
+      <div class="section-header">
+        <div class="section-title">Opinion &amp; <span>Analysis</span></div>
+        <a href="#" class="see-all">All Columns →</a>
+      </div>
+
+      <div class="opinion-card">
+        <div class="avatar red">DR</div>
+        <div>
+          <h3 class="opinion-headline">"The Climate Deal Is a Beginning, Not a Resolution — Here's the Difference"</h3>
+          <div class="opinion-byline">Dr. Renata Sousa — Climate Policy Fellow</div>
+        </div>
+      </div>
+
+      <div class="opinion-card">
+        <div class="avatar gold">JT</div>
+        <div>
+          <h3 class="opinion-headline">"Why Central Banks Are Navigating This Cycle Without a Map"</h3>
+          <div class="opinion-byline">James Tran — Economics Correspondent</div>
+        </div>
+      </div>
+
+      <div class="opinion-card">
+        <div class="avatar">MK</div>
+        <div>
+          <h3 class="opinion-headline">"The AI Safety Document Nobody Is Actually Reading"</h3>
+          <div class="opinion-byline">Maya Kovač — Technology Editor</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-col">
+      <div class="section-header">
+        <div class="section-title">Trending <span>Now</span></div>
+      </div>
+
+      <div class="trending-item">
+        <div class="trending-num">1</div>
+        <div>
+          <div class="trending-text">Climate Accord: Who Signed, Who Didn't, and What It Means</div>
+          <div class="trending-cat">World Affairs</div>
+        </div>
+      </div>
+      <div class="trending-item">
+        <div class="trending-num">2</div>
+        <div>
+          <div class="trending-text">Fed Hold: A Full Explainer for Non-Economists</div>
+          <div class="trending-cat">Economy</div>
+        </div>
+      </div>
+      <div class="trending-item">
+        <div class="trending-num">3</div>
+        <div>
+          <div class="trending-text">The Pacific Earthquake: Fault Lines You Should Know</div>
+          <div class="trending-cat">Science</div>
+        </div>
+      </div>
+      <div class="trending-item">
+        <div class="trending-num">4</div>
+        <div>
+          <div class="trending-text">Budget Crisis: A Timeline of the Coalition's First Year</div>
+          <div class="trending-cat">Politics</div>
+        </div>
+      </div>
+      <div class="trending-item">
+        <div class="trending-num">5</div>
+        <div>
+          <div class="trending-text">Pancreatic Cancer Trial: The Science Behind the Numbers</div>
+          <div class="trending-cat">Health</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIDEO SECTION -->
+  <div class="video-strip">
+    <div class="section-header">
+      <div class="section-title">Watch <span style="color:var(--signal)">·</span> Signal Video</div>
+      <a href="#" class="see-all" style="color:rgba(244,240,232,0.5); border-color:rgba(244,240,232,0.3);">All Videos →</a>
+    </div>
+    <div class="video-row">
+      <div>
+        <div class="video-thumb">
+          <span class="video-live-badge">LIVE</span>
+        </div>
+        <div class="video-info">
+          <div class="video-title">G20 Emergency Press Conference — Live Coverage</div>
+          <div class="video-meta">Signal News Live · 14,802 watching</div>
+        </div>
+      </div>
+      <div>
+        <div class="video-thumb">
+          <span class="video-duration">18:44</span>
+        </div>
+        <div class="video-info">
+          <div class="video-title">Inside the Summit: How the Climate Deal Was Brokered</div>
+          <div class="video-meta">World Affairs · 2.1M views</div>
+        </div>
+      </div>
+      <div>
+        <div class="video-thumb">
+          <span class="video-duration">9:12</span>
+        </div>
+        <div class="video-info">
+          <div class="video-title">Market Pulse: Parsing Today's Fed Statement Word by Word</div>
+          <div class="video-meta">Economy · 840K views</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-grid">
+      <div>
+        <div class="footer-logo">SIGNAL</div>
+        <div class="footer-tagline">Clarity in the noise.<br/>Independent journalism since 2009.</div>
+      </div>
+      <div>
+        <div class="footer-col-title">Sections</div>
+        <ul class="footer-links">
+          <li><a href="#">World</a></li>
+          <li><a href="#">Politics</a></li>
+          <li><a href="#">Economy</a></li>
+          <li><a href="#">Science &amp; Health</a></li>
+          <li><a href="#">Technology</a></li>
+          <li><a href="#">Culture</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Company</div>
+        <ul class="footer-links">
+          <li><a href="#">About Signal</a></li>
+          <li><a href="#">Our Journalists</a></li>
+          <li><a href="#">Editorial Standards</a></li>
+          <li><a href="#">Corrections</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Subscribe</div>
+        <ul class="footer-links">
+          <li><a href="#">Digital Access</a></li>
+          <li><a href="#">Signal+ Premium</a></li>
+          <li><a href="#">Newsletters</a></li>
+          <li><a href="#">Podcasts</a></li>
+          <li><a href="#">Signal App</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Signal News Network. All rights reserved.</span>
+      <span>Privacy · Terms · Cookie Settings</span>
+    </div>
+  </footer>
+
+  <script>
+    // Live clock
+    function updateClock() {
+      const now = new Date();
+      const h = String(now.getUTCHours()).padStart(2,'0');
+      const m = String(now.getUTCMinutes()).padStart(2,'0');
+      const s = String(now.getUTCSeconds()).padStart(2,'0');
+      document.getElementById('clock').textContent = `${h}:${m}:${s} UTC`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+  </script>
+</body>
+</html>
